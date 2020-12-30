@@ -108,7 +108,14 @@ GuiPage_ItemDetails.start = function(title,url,selectedItem) {
 		if (this.SeriesData == null) { return; }
 		
 		//Get Episode Data
-		var episodesUrl = Server.getChildItemsURL(this.ItemData.SeasonId,"&IncludeItemTypes=Episode&fields=SortName,Overview");
+		var episodesUrl;
+		if(this.ItemData.SeasonId){
+			episodesUrl = Server.getChildItemsURL(this.ItemData.SeasonId,"&IncludeItemTypes=Episode&fields=SortName,Overview");
+		}
+		else{
+			episodesUrl = Server.getChildItemsURL(this.SeriesData.Id,"&IncludeItemTypes=Episode&fields=SortName,Overview");
+		}
+
 		this.EpisodeData = Server.getContent(episodesUrl);
 		if (this.EpisodeData == null) { return; }
 		
