@@ -377,7 +377,7 @@ GuiTV_Show.processSelectedItem = function() {
 			GuiPlayer.start("PlayAll",urlToPlay,0,"GuiTV_Show");	
 		}
 	} else {
-		var url = Server.getChildItemsURL(this.ItemData.Items[this.selectedItem].Id,"&IncludeItemTypes=Episode&fields=SortName,Overview");
+		var url = Server.getSeasonEpisodesURL(this.ItemData.Items[this.selectedItem].Id,"&IncludeItemTypes=Episode&fields=SortName,Overview");
 		GuiDisplay_Episodes.start(this.ShowData.Name + " " + this.ItemData.Items[this.selectedItem].Name,url,0,0);
 	}	
 }
