@@ -47,7 +47,7 @@ GuiPlayer_Transcoding.start = function(showId, MediaSource,MediaSourceIndex, vid
 
 	var streamparams = "";
 	var transcodeStatus = "";
-
+	GuiPlayer_Transcoding.clearCurrentEncoding();
 	//If audiocheck failed convert to AAC OR AC3 depending on setting
 	//If audiocheck ok convert to AAC or dont convert & leave as original codec
 
@@ -65,24 +65,46 @@ GuiPlayer_Transcoding.start = function(showId, MediaSource,MediaSourceIndex, vid
 	if (this.isVideo && this.isAudio && convertAACtoDolby == false) {
 		if (isFirstAudioIndex == true) {
 			transcodeStatus = "Direct Play";
-			streamparams = '/Stream.'+this.MediaSource.Container+'?static=true&MediaSourceId='+this.MediaSource.Id + '&api_key=' + Server.getAuthToken();
+			streamparams = '&static=true';
 		} else {			
 			transcodeStatus = "Stream Copy - Audio Not First Track";
-			streamparams = '/Stream.ts?VideoStreamIndex='+this.videoIndex+'&AudioStreamIndex='+this.audioIndex+'&VideoCodec=copy&AudioCodec='+ streamAudioCodec +'&MediaSourceId='+this.MediaSource.Id + '&api_key=' + Server.getAuthToken();
+			streamparams = 'VideoStreamIndex='+this.videoIndex+'&AudioStreamIndex='+this.audioIndex+'&VideoCodec=copy&AudioCodec='+ streamAudioCodec;
 		}	
 	} else if (this.isVideo == false) {
 		transcodeStatus = "Transcoding Audio & Video";	
-		streamparams = '/Stream.ts?VideoStreamIndex='+this.videoIndex+'&AudioStreamIndex='+this.audioIndex+'&VideoCodec=h264&Profile=high&Level=41&MaxVideoBitDepth=8&MaxWidth=1920&VideoBitrate='+this.bitRateToUse+'&AudioCodec=' + streamAudioCodec +'&AudioBitrate=360000&MaxAudioChannels=6&MediaSourceId='+this.MediaSource.Id + '&api_key=' + Server.getAuthToken();	
+		var url = Server.getServerAddr()+'/videos/' +showId+ '/Stream.ts?VideoStreamIndex='+this.videoIndex+'&AudioStreamIndex='+this.audioIndex+'&VideoCodec=h264&Profile=high&Level=41&MaxVideoBitDepth=8&MaxWidth=1920&VideoBitrate='+this.bitRateToUse+'&AudioCodec=' + streamAudioCodec +'&AudioBitrate=360000&MaxAudioChannels=6';
+		+ '&DeviceId='+Server.DeviceID;;	
+		FileLog.write("Video : URL : " + url);
+		
+		streamparams = 'VideoStreamIndex='+this.videoIndex+'&AudioStreamIndex='+this.audioIndex+'&VideoCodec=h264&VideoBitrate='+this.bitRateToUse+'&AudioCodec=' + streamAudioCodec;
 	} else if (this.isVideo == true && (this.isAudio == false || convertAACtoDolby == true)) {
 		transcodeStatus = "Transcoding Audio";	
-		streamparams = '/Stream.ts?VideoStreamIndex='+this.videoIndex+'&AudioStreamIndex='+this.audioIndex+'&VideoCodec=copy&AudioCodec='+ streamAudioCodec +'&audioBitrate=360000&MaxAudioChannels=6&MediaSourceId='+this.MediaSource.Id + '&api_key=' + Server.getAuthToken();
+		streamparams = 'VideoStreamIndex='+this.videoIndex+'&AudioStreamIndex='+this.audioIndex+'&VideoCodec=copy&AudioCodec='+ streamAudioCodec +'&audioBitrate=360000&MaxAudioChannels=6';
 	}
-	var url = Server.getServerAddr() + '/Videos/' + showId + streamparams + '&DeviceId='+Server.getDeviceID();
-	FileLog.write("Video : Transcode Status : " + transcodeStatus);
+	
+	var url = Server.getServerAddr() + '/Items/' +showId+ '/PlaybackInfo?' + streamparams +'&Static=true' + '&DeviceId='+Server.DeviceID+ '&api_key=' + Server.getAuthToken();
+	FileLog.write("PlaybackInfo URL : " + url);
+	if(subtitleIndex){
+		url = url+"&SubtitleStreamIndex="+subtitleIndex;
+	}
+	
+	this.MediaSource = GuiPlayer_Transcoding.updatePlayBackInfo(url);
+	if(this.MediaSource.MediaSources[MediaSourceIndex].DirectStreamUrl){
+		url = Server.getServerAddr() + this.MediaSource.MediaSources[MediaSourceIndex].DirectStreamUrl;
+		FileLog.write("Playing method: Direct stream");
+	}
+	else if(this.MediaSource.MediaSources[MediaSourceIndex].TranscodingUrl){
+		url = Server.getServerAddr() + this.MediaSource.MediaSources[MediaSourceIndex].TranscodingUrl;
+		FileLog.write("Playing method: Transcoding");
+	}
+	else{
+		var streamparams = '/Stream.'+this.MediaSource.MediaSources[MediaSourceIndex].Container+'?MediaSourceId='+this.MediaSource.Id + '&api_key=' + Server.getAuthToken();
+		url = Server.getServerAddr() + '/Videos/' + showId + streamparams +'&Static=true' + '&DeviceId='+Server.DeviceID;	
+		FileLog.write("Playing method: Direct play");
+	}
+	
 	FileLog.write("Video : URL : " + url);
-
-	//Return results to Versions
-	//MediaSourceId,Url,transcodeStatus,videoIndex,audioIndex
+	
 	return [MediaSourceIndex,url,transcodeStatus,videoIndex,audioIndex,subtitleIndex];	
 }
 
