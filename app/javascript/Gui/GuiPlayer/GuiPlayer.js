@@ -147,11 +147,7 @@ GuiPlayer.startPlayback = function(TranscodeAlg, resumeTicksSamsung) {
 	}
 
     //Set offsetSeconds time
-    if (this.PlayMethod == "Transcode") {
-    	this.offsetSeconds = resumeTicksSamsung;
-    } else {
-    	this.offsetSeconds = 0;
-    }
+    this.offsetSeconds = 0;
 
     //Set up GuiPlayer_Display
     GuiPlayer_Display.setDisplay(this.PlayerData,this.playingMediaSource,this.playingTranscodeStatus,this.offsetSeconds,this.playingVideoIndex,this.playingAudioIndex,this.playingSubtitleIndex,this.playingMediaSourceIndex);
@@ -160,10 +156,8 @@ GuiPlayer.startPlayback = function(TranscodeAlg, resumeTicksSamsung) {
 	this.setDisplaySize();
 	
 	//Subtitles - If resuming find the correct index to start from!
-    FileLog.write("Playback : Start Subtitle Processing");
 	this.setSubtitles(this.playingSubtitleIndex);
 	this.updateSubtitleTime(resumeTicksSamsung,"NewSubs");
-	FileLog.write("Playback : End Subtitle Processing");
 
 	//Create Tools Menu
 	GuiPlayer_Display.createToolsMenu();
@@ -173,12 +167,17 @@ GuiPlayer.startPlayback = function(TranscodeAlg, resumeTicksSamsung) {
     
 	//Update URL with resumeticks
 	FileLog.write("Playback : E+ Series Playback - Load URL");
-	var url = this.playingURL + '&StartTimeTicks=' + (resumeTicksSamsung*10000);
-	var position = 0;
-	if (this.PlayMethod == "DirectPlay") {
-		position = Math.round(resumeTicksSamsung / 1000);
+	
+	position = Math.round(resumeTicksSamsung / 1000);
+
+	url = this.playingURL + '&StartTimeTicks=' + (resumeTicksSamsung*10000)
+
+	if (this.playingURL.indexOf('m3u8') >= 0) 
+	{  
+		url = url + "|COMPONENT=HLS";
 	}
-    this.plugin.ResumePlay(url,position); 
+
+	this.plugin.ResumePlay(url,position);
 };
 
 GuiPlayer.stopPlayback = function() {
@@ -232,9 +231,10 @@ GuiPlayer.setSubtitles = function(selectedSubtitleIndex) {
 			//Set Colour & Size from User Settings
 			Support.styleSubtitles("guiPlayer_Subtitles");
 			
-		    var url = Server.getCustomURL("/Videos/"+ this.PlayerData.Id+"/"+this.playingMediaSource.Id+"/Subtitles/"+selectedSubtitleIndex+"/Stream.srt?api_key=" + Server.getAuthToken());
-		    this.PlayerDataSubtitle = Server.getSubtitles(url);
-			FileLog.write("Subtitles : loaded "+url);
+		    var url = Server.getCustomURL("/Videos/"+ this.PlayerData.Id+"/"+this.playingMediaSource.Id+"/Subtitles/"+selectedSubtitleIndex+"/Stream.srt?api_key=" + Server.getAuthToken()+"&StartPositionTicks="+this.currentTime);
++		    
+ 		    this.PlayerDataSubtitle = Server.getSubtitles(url);
+ 		    FileLog.write("Subtitles : loaded "+url);
 			
 		    if (this.PlayerDataSubtitle == null) { 
 		    	this.playingSubtitleIndex = -1; 
@@ -306,7 +306,7 @@ GuiPlayer.handleOnRenderingComplete = function() {
 	GuiPlayer.stopPlayback();
 	FileLog.write("Playback : Rendering Complete");
 	
-	if (this.startParams[0] == "PlayAll") {
+	if (this.startParams[0] == "PlayAll" || this.startParams[0] == "PLAY") {
 	////Call Resume Option - Check playlist first, then AutoPlay property, then return
 		this.PlayerIndex++;
 		if (this.VideoData.Items.length > this.PlayerIndex) {	
